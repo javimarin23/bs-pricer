@@ -60,7 +60,10 @@ def main():
     # Pareado PARCIAL: ambos métodos arrancan del mismo seed en cada
     # réplica, pero el estándar consume N normales y el antitético N/2,
     # así que comparten prefijo del flujo sin ser un pareado exacto.
-    # Correlacionar los dos estimadores estabiliza el cociente de varianzas.
+    #
+    # R = 200 resultó insuficiente (22% de error relativo, compatible con
+    # ruido ~2/sqrt(200) = 14%). Con R = 1000 el error baja a ~1.8%, lo que
+    # descarta un sesgo apreciable del pareado parcial.
     # ---------------------------------------------------------------
     R = 1000
     N_rep = 20_000
@@ -87,9 +90,11 @@ def main():
     # [3] Contraste teoría vs. empírico
     #
     # Tolerancia: el cociente de dos varianzas muestrales con R réplicas
-    # tiene error relativo del orden de 2/sqrt(R) ~ 14% con R = 200.
-    # El 20% deja margen sobre ese ruido sin ser vacío. Para apretarlo
-    # hay que subir R, no bajar la tolerancia a ojo.
+    # tiene error relativo del orden de 2/sqrt(R) ~ 6.3% con R = 1000.
+    # TOL_REL = 0.20 son ~3 desviaciones de ese ruido: mismo criterio que
+    # k = 3.891 en test_monte_carlo.py (fallo espurio despreciable). La
+    # tolerancia se fija a partir del ruido esperado, NUNCA a partir del
+    # error observado en una corrida concreta.
     # ---------------------------------------------------------------
     error_rel = abs(factor_empirico - factor_predicho) / factor_predicho
     TOL_REL = 0.20
