@@ -31,13 +31,38 @@ but subject to that run's own noise. The antithetic band is visibly narrower thr
 
 ## Install
 
+The package supports Python 3.10+. Development uses Python 3.12 (`.python-version`), and
+`requirements.txt` pins the exact dependency versions of that development environment —
+those pins require Python 3.12. Install them before the package so the pinned versions are
+used.
+
+**Linux / macOS**
+
 ```bash
 git clone https://github.com/javimarin23/bs-pricer.git
 cd bs-pricer
-python -m venv .venv && source .venv/bin/activate   # Windows: .venv\Scripts\activate
-pip install -e .
-pip install -r requirements.txt
+python3.12 -m venv .venv
+source .venv/bin/activate
+python -m pip install -r requirements.txt
+python -m pip install -e .
+pytest
 ```
+
+**Windows (PowerShell)**
+
+```powershell
+git clone https://github.com/javimarin23/bs-pricer.git
+cd bs-pricer
+py -3.12 -m venv .venv
+.venv\Scripts\Activate.ps1
+python -m pip install -r requirements.txt
+python -m pip install -e .
+pytest
+```
+
+If PowerShell blocks the activation script, run
+`Set-ExecutionPolicy -Scope CurrentUser RemoteSigned` once, or skip activation and call
+`.venv\Scripts\python.exe` directly.
 
 ## Usage
 
