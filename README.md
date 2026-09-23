@@ -36,6 +36,10 @@ The package supports Python 3.10+. Development uses Python 3.12 (`.python-versio
 those pins require Python 3.12. Install them before the package so the pinned versions are
 used.
 
+The package itself depends only on NumPy and SciPy. Optional extras: `dev` (pytest) for the
+test suite and `plots` (matplotlib) for the figure scripts. A plain `pip install .` gives
+the library alone.
+
 **Linux / macOS**
 
 ```bash
@@ -44,7 +48,7 @@ cd bs-pricer
 python3.12 -m venv .venv
 source .venv/bin/activate
 python -m pip install -r requirements.txt
-python -m pip install -e .
+python -m pip install -e ".[dev,plots]"
 pytest
 ```
 
@@ -56,7 +60,7 @@ cd bs-pricer
 py -3.12 -m venv .venv
 .venv\Scripts\Activate.ps1
 python -m pip install -r requirements.txt
-python -m pip install -e .
+python -m pip install -e ".[dev,plots]"
 pytest
 ```
 
