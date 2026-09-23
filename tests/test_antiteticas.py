@@ -20,7 +20,7 @@ from bs_pricer import (
     mc_pricer_antithetic,
 )
 
-S0, K, R_TASA, SIGMA, T = 100.0, 80.0, 0.05, 0.2, 1.0
+S0, K, r, SIGMA, T = 100.0, 80.0, 0.05, 0.2, 1.0
 TIPO = "call"
 
 
@@ -39,10 +39,10 @@ def test_antithetic_insesgado():
     SEED = 2024
     K_SIGMAS = 3.891
 
-    precio_bs = call_price(S0, K, R_TASA, SIGMA, T)
+    precio_bs = call_price(S0, K, r, SIGMA, T)
 
-    ST1, ST2 = simulate_ST_antithetic(S0, R_TASA, SIGMA, T, N, seed=SEED)
-    precio, se, _, _ = mc_pricer_antithetic(ST1, ST2, K, R_TASA, T, TIPO)
+    ST1, ST2 = simulate_ST_antithetic(S0, r, SIGMA, T, N, seed=SEED)
+    precio, se, _, _ = mc_pricer_antithetic(ST1, ST2, K, r, T, TIPO)
 
     assert abs(precio - precio_bs) < K_SIGMAS * se
 
@@ -71,12 +71,12 @@ def test_antithetic_factor_varianza():
     factores = np.empty(R)
 
     for i in range(R):
-        ST = simulate_ST(S0, R_TASA, SIGMA, T, N, seed=i)
-        precios_std[i], _, _ = mc_pricer(ST, K, R_TASA, T, TIPO)
+        ST = simulate_ST(S0, r, SIGMA, T, N, seed=i)
+        precios_std[i], _, _ = mc_pricer(ST, K, r, T, TIPO)
 
-        ST1, ST2 = simulate_ST_antithetic(S0, R_TASA, SIGMA, T, N, seed=i)
+        ST1, ST2 = simulate_ST_antithetic(S0, r, SIGMA, T, N, seed=i)
         precios_anti[i], _, _, factores[i] = mc_pricer_antithetic(
-            ST1, ST2, K, R_TASA, T, TIPO
+            ST1, ST2, K, r, T, TIPO
         )
 
     factor_predicho = factores.mean()
@@ -116,8 +116,8 @@ def test_antithetic_se_reportado():
     ses = np.empty(R)
 
     for i in range(R):
-        ST1, ST2 = simulate_ST_antithetic(S0, R_TASA, SIGMA, T, N, seed=i)
-        precios[i], ses[i], _, _ = mc_pricer_antithetic(ST1, ST2, K, R_TASA, T, TIPO)
+        ST1, ST2 = simulate_ST_antithetic(S0, r, SIGMA, T, N, seed=i)
+        precios[i], ses[i], _, _ = mc_pricer_antithetic(ST1, ST2, K, r, T, TIPO)
 
     se_reportado = ses.mean()
     se_empirico = precios.std(ddof=1)

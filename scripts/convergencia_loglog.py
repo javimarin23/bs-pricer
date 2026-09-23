@@ -1,14 +1,14 @@
 """
-Estudio de convergencia log-log: RMSE frente a N para MC estándar y antitético.
+Log-log convergence study: RMSE vs. N for standard and antithetic MC.
 
-Predicción teórica (sin sesgo, muestras i.i.d.):
+Theoretical prediction (unbiased, i.i.d. samples):
     RMSE_std(N)  = sigma_g / sqrt(N)
     RMSE_anti(N) = sigma_g * sqrt(1 + rho) / sqrt(N)
 
-Ambas son rectas de pendiente -1/2 en log-log, separadas verticalmente por
-0.5 * log10(1 + rho) décadas. La separación es constante en N porque rho es
-una propiedad del payoff, no del tamaño de muestra. Un aplanamiento de la
-curva a N grande indicaría sesgo (suelo de error), no varianza.
+Both are slope -1/2 lines in log-log, separated by 0.5*log10(1+rho) decades,
+constant in N. A flattening curve at large N indicates bias, not variance.
+Full design rationale (N spacing, R sizing, seed choice, referencing against
+the exact price) is in apuntes_scripts.pdf, section on this script.
 """
 
 from pathlib import Path
@@ -26,9 +26,8 @@ from bs_pricer.monte_carlo import (
 
 
 def rmse_contra_referencia(precios, referencia):
-    # Contra el precio exacto de Black-Scholes, NO contra la media de las
-    # réplicas: así el RMSE recoge sesgo + varianza. Contra la media solo
-    # se vería la varianza y un sesgo sistemático quedaría invisible.
+    # Against the exact Black-Scholes price, not the replica mean: this way
+    # RMSE captures bias + variance. See PDF.
     return np.sqrt(np.mean((precios - referencia) ** 2))
 
 
@@ -42,13 +41,7 @@ def main():
 
     precio_bs = call_price(S0, K, r, sigma, T)
 
-    # ---------------------------------------------------------------
-    # [1] Piloto: sigma_g y rho para las rectas teóricas
-    #
-    # Misma corrida que el bloque [1] de comparacion_antiteticas.py
-    # (N = 50.000, seed = 100), así que reproduce rho = -0.8837.
-    # Es independiente del barrido: sus semillas no se solapan (ver [2]).
-    # ---------------------------------------------------------------
+    # [1] Pilot run for sigma_g and rho, independent of the sweep below.
     N_piloto = 50_000
     seed_piloto = 100
 
@@ -58,23 +51,10 @@ def main():
     ST1, ST2 = simulate_ST_antithetic(S0, r, sigma, T, N_piloto, seed=seed_piloto)
     _, _, rho, factor_predicho = mc_pricer_antithetic(ST1, ST2, K, r, T, tipo_opcion)
 
-    # ---------------------------------------------------------------
-    # [2] Barrido en N con R réplicas por punto
-    #
-    # N: 10 puntos geométricos en [1e2, 1e5] (~3 por década, tres décadas
-    # de brazo de palanca para la pendiente). Redondeados a par porque el
-    # antitético usa M = N/2 parejas.
-    #
-    # R = 100: error relativo por punto ~ 1/sqrt(2R) = 7.1% (0.031 décadas);
-    # con 10 puntos en 3 décadas, SE(pendiente) ~ 0.01.
-    #
-    # Semillas independientes por cada par (N, réplica). Con semillas
-    # comunes a todos los N las muestras quedarían anidadas, los errores
-    # de puntos vecinos correlacionados, y la curva saldría artificialmente
-    # suave e invalidaría el ajuste por mínimos cuadrados. Los dos métodos
-    # sí comparten semilla dentro de cada (N, réplica), igual que en el
-    # contraste: eso no afecta a la pendiente de cada curva.
-    # ---------------------------------------------------------------
+    # [2] Sweep over N with R replicas per point. 10 geometric points in
+    # [1e2, 1e5], rounded to even (antithetic uses M = N/2 pairs). R=100.
+    # Independent seeds per (N, replica): common seeds would nest the
+    # samples and invalidate the least-squares slope fit. See PDF.
     N_valores = np.unique(
         2 * np.round(np.geomspace(100, 100_000, 10) / 2).astype(int)
     )
@@ -102,12 +82,7 @@ def main():
         rmse_std[j] = rmse_contra_referencia(precios_std, precio_bs)
         rmse_anti[j] = rmse_contra_referencia(precios_anti, precio_bs)
 
-    # ---------------------------------------------------------------
-    # [3] Ajuste de pendientes y separación
-    #
-    # Criterio de compatibilidad: |pendiente + 0.5| < 3 SE, mismo espíritu
-    # que k = 3.891 en los tests (fallo espurio despreciable).
-    # ---------------------------------------------------------------
+    # [3] Slope fit and offset. Compatibility: |slope + 0.5| < 3*SE.
     x = np.log10(N_valores)
 
     (pend_std, _), cov_std = np.polyfit(x, np.log10(rmse_std), 1, cov=True)
@@ -134,10 +109,7 @@ def main():
     print(f"    Predicha  0.5*log10(1+rho): {sep_predicha:+.4f}")
     print(f"    Medida    (media):          {sep_medida:+.4f}")
 
-    # ---------------------------------------------------------------
-    # [4] Figura
-    # Etiquetas en inglés: la figura va al README.
-    # ---------------------------------------------------------------
+    # [4] Figure -- English labels, goes into the README
     N_linea = np.geomspace(N_valores[0], N_valores[-1], 200)
 
     fig, ax = plt.subplots(figsize=(7, 5))

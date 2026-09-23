@@ -1,8 +1,10 @@
 """
-Comparación MC estándar vs. antitético a igualdad de presupuesto.
+Standard vs. antithetic MC at equal payoff-evaluation budget.
 
-Contrasta la reducción de varianza predicha por la teoría (1 + rho) contra
-la medida empíricamente por replicación.
+Contrasts the theoretical variance reduction (1 + rho) against a
+replication-based empirical measurement. Design rationale (why replication
+instead of comparing SE directly, seed choice, tolerance derivation) is in
+apuntes_scripts.pdf, section on this script.
 """
 
 import numpy as np
@@ -24,9 +26,7 @@ def main():
     T = 1.0
     tipo_opcion = "call"
 
-    # ---------------------------------------------------------------
-    # [1] Comprobación rápida: una corrida de cada método
-    # ---------------------------------------------------------------
+    # [1] Single-run sanity check
     N_total = 50_000
     seed_check = 100
 
@@ -48,23 +48,9 @@ def main():
     print(f"    rho(g1, g2) = {rho:.4f}")
     print(f"    Factor de reducción predicho (1 + rho) = {factor_predicho:.4f}")
 
-    # ---------------------------------------------------------------
-    # [2] Factor empírico por replicación
-    #
-    # Mide la dispersión REAL de cada estimador repitiendo el experimento
-    # R veces, sin usar la fórmula del TCL. Es una medición independiente
-    # de la teoría que se está validando: comparar los SE de una sola
-    # corrida sería circular, porque se_anti ya se deriva algebraicamente
-    # de sigma_g y rho.
-    #
-    # Pareado PARCIAL: ambos métodos arrancan del mismo seed en cada
-    # réplica, pero el estándar consume N normales y el antitético N/2,
-    # así que comparten prefijo del flujo sin ser un pareado exacto.
-    #
-    # R = 200 resultó insuficiente (22% de error relativo, compatible con
-    # ruido ~2/sqrt(200) = 14%). Con R = 1000 el error baja a ~1.8%, lo que
-    # descarta un sesgo apreciable del pareado parcial.
-    # ---------------------------------------------------------------
+    # [2] Empirical factor by replication (independent of the TCL formula
+    # being validated; not comparable to a single-run SE ratio, which is
+    # circular). R=1000, partial pairing across methods -- see PDF.
     R = 1000
     N_rep = 20_000
 
@@ -73,8 +59,6 @@ def main():
 
     for i in range(R):
         ST_i = simulate_ST(S0, r, sigma, T, N_rep, seed=i)
-        # Solo interesa el precio: la varianza se mide ENTRE réplicas,
-        # no dentro de una. Por eso se descartan stdev y SE.
         precios_std[i], _, _ = mc_pricer(ST_i, K, r, T, tipo_opcion)
 
         ST1_i, ST2_i = simulate_ST_antithetic(S0, r, sigma, T, N_rep, seed=i)
@@ -86,16 +70,8 @@ def main():
     var_anti = precios_anti.var(ddof=1)
     factor_empirico = var_anti / var_std
 
-    # ---------------------------------------------------------------
-    # [3] Contraste teoría vs. empírico
-    #
-    # Tolerancia: el cociente de dos varianzas muestrales con R réplicas
-    # tiene error relativo del orden de 2/sqrt(R) ~ 6.3% con R = 1000.
-    # TOL_REL = 0.20 son ~3 desviaciones de ese ruido: mismo criterio que
-    # k = 3.891 en test_monte_carlo.py (fallo espurio despreciable). La
-    # tolerancia se fija a partir del ruido esperado, NUNCA a partir del
-    # error observado en una corrida concreta.
-    # ---------------------------------------------------------------
+    # [3] Theory vs. empirical contrast. Tolerance from expected noise
+    # 2/sqrt(R) ~ 6.3% (R=1000), never from the observed error. See PDF.
     error_rel = abs(factor_empirico - factor_predicho) / factor_predicho
     TOL_REL = 0.20
 
